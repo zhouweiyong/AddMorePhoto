@@ -35,9 +35,10 @@ public class FileUtls {
      * 取得图片路径
      */
     public static File initNewPhotoFile(Context context) {
-//        File tempImageDir = new File(context.getExternalCacheDir(), "images");
         File tempImageDir = new File(context.getExternalCacheDir(), "images");
-        Log.i("zwy",tempImageDir.getAbsolutePath());
+        //这个路径 6.0用不了
+//        File tempImageDir = new File(context.getCacheDir(), "images");
+//        File tempImageDir = new File(Environment.getExternalStorageDirectory(), "images");
         Log.i("zwy", tempImageDir.getAbsolutePath());
 
         if (!tempImageDir.exists()) {

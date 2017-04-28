@@ -1,9 +1,13 @@
 package com.vst.addmorephoto.ui;
 
+import android.Manifest;
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -37,6 +41,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final int CODE_REQUEST_CAMERA = 0X110;
     private Dialog mDialog;
+    private static final int MY_PERMISSIONS_REQUEST_CALL_PHONE = 6;
+    private static final int MY_PERMISSIONS_REQUEST_CALL_PHONE2 = 7;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,26 +82,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //6.0系统需要动态申请权限
     private void addPic() {
         mDialog = DialogUtils.createTwoChoicAlertNoTitle(this, "拍照", "从相册选择", new DialogUtils.OnDialogItemClickListener() {
             @Override
             public void onDialogItemClick(View v, int position) {
                 if (position == 0) {
-                    if (!FileUtls.isSDCardExist()) {
-                        Toast.makeText(MainActivity.this, "sd卡不可用", Toast.LENGTH_SHORT).show();
-                        return;
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                                MY_PERMISSIONS_REQUEST_CALL_PHONE);
+
+                    } else {
+                        takePhoto();
                     }
-                    Intent cameraIntent = null;
-                    mNewPhotoFile = FileUtls.initNewPhotoFile(MainActivity.this);
-                    cameraIntent = PhotoUtils.getTakeCameraIntent(Uri.fromFile(mNewPhotoFile));
-                    startActivityForResult(cameraIntent, CODE_REQUEST_CAMERA);
-                    mDialog.dismiss();
+
                 } else if (position == 1) {
-                    startActivity(new Intent(MainActivity.this, AlbumActivity.class));
+                    if (ContextCompat.checkSelfPermission(MainActivity.this,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                MY_PERMISSIONS_REQUEST_CALL_PHONE2);
+
+                    } else {
+                        startActivity(new Intent(MainActivity.this, AlbumActivity.class));
+                    }
+
                 }
             }
         });
         mDialog.show();
+    }
+
+    private void takePhoto() {
+        if (!FileUtls.isSDCardExist()) {
+            Toast.makeText(MainActivity.this, "sd卡不可用", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent cameraIntent = null;
+        mNewPhotoFile = FileUtls.initNewPhotoFile(MainActivity.this);
+        cameraIntent = PhotoUtils.getTakeCameraIntent(Uri.fromFile(mNewPhotoFile));
+        startActivityForResult(cameraIntent, CODE_REQUEST_CAMERA);
+        mDialog.dismiss();
     }
 
     @Override
@@ -130,5 +160,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             layout_add_pic.setVisibility(View.VISIBLE);
             gv_display_add_pic.setVisibility(View.GONE);
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == MY_PERMISSIONS_REQUEST_CALL_PHONE) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                takePhoto();
+            } else {
+                // Permission Denied
+                Toast.makeText(MainActivity.this, "Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+        if (requestCode == MY_PERMISSIONS_REQUEST_CALL_PHONE2) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startActivity(new Intent(MainActivity.this, AlbumActivity.class));
+            } else {
+                // Permission Denied
+                Toast.makeText(MainActivity.this, "Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }
